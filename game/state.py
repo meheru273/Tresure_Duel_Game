@@ -18,6 +18,8 @@ class GameState:
 
     def __post_init__(self):
         """Initialize visited cells with starting positions."""
+        # Set AI position based on grid size
+        self.ai_pos = (self.grid_size - 1, self.grid_size - 1)
         self.visited = {self.human_pos, self.ai_pos}
 
     def copy(self) -> 'GameState':
