@@ -1,7 +1,7 @@
 import random
-from state import GameState
-from rules import get_legal_moves, is_terminal, get_winner
-from engine import get_best_move, clear_transposition_table
+from .state import GameState
+from .rules import get_legal_moves, is_terminal, get_winner
+from .engine import get_best_move, clear_transposition_table
 
 def initialize_game(grid_size: int = 4, num_treasures: int = 5, 
                    treasure_range: tuple = (-3, 10)) -> GameState:

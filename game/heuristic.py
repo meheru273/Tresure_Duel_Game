@@ -1,6 +1,6 @@
 from typing import Tuple
-from game.state import GameState
-from game.rules import get_legal_moves, get_nearest_treasure, manhattan_distance
+from .state import GameState
+from .rules import get_legal_moves, get_nearest_treasure, manhattan_distance
 
 def fuzzy_distance_score(distance: float, max_distance: float = 10.0) -> float:
     """
