@@ -1,10 +1,17 @@
 from typing import Tuple, Optional, Dict
-from state import GameState
-from rules import get_legal_moves, is_terminal
-from heuristics import evaluate_state
+from .state import GameState
+from .rules import get_legal_moves, is_terminal
+from .heuristic import evaluate_state
 
 # Transposition table for memoization
 transposition_table: Dict[int, Tuple[float, int]] = {}
+
+# Simple opening book for 4x4 grid
+OPENING_BOOK = {
+    # Human at (0,0), AI at (3,3)
+    ((0, 0), (3, 3), True): (1, 0),  # Human should move right first
+    ((0, 0), (3, 3), False): (2, 3),  # AI should move left first
+}
 
 
 def clear_transposition_table():
@@ -93,6 +100,49 @@ def minimax(state: GameState, depth: int, maximizing_player: bool) -> Tuple[floa
         return min_eval, best_move
 
 
+def quiescence_search(state: GameState, alpha: float, beta: float, 
+                     maximizing_player: bool) -> float:
+    """
+    Quiescence search to handle positions with immediate captures.
+    
+    Args:
+        state: Current game state
+        alpha: Alpha value for pruning
+        beta: Beta value for pruning
+        maximizing_player: True if AI (maximizing), False if human (minimizing)
+    
+    Returns:
+        Evaluation score
+    """
+    # Only search moves that collect treasures (immediate captures)
+    moves = get_legal_moves(state)
+    capture_moves = [move for move in moves if move in state.treasures]
+    
+    if not capture_moves:
+        return evaluate_state(state)
+    
+    if maximizing_player:
+        max_eval = evaluate_state(state)
+        for move in capture_moves:
+            new_state = state.apply_move(move)
+            eval_score = quiescence_search(new_state, alpha, beta, False)
+            max_eval = max(max_eval, eval_score)
+            alpha = max(alpha, eval_score)
+            if beta <= alpha:
+                break
+        return max_eval
+    else:
+        min_eval = evaluate_state(state)
+        for move in capture_moves:
+            new_state = state.apply_move(move)
+            eval_score = quiescence_search(new_state, alpha, beta, True)
+            min_eval = min(min_eval, eval_score)
+            beta = min(beta, eval_score)
+            if beta <= alpha:
+                break
+        return min_eval
+
+
 def alpha_beta(state: GameState, depth: int, alpha: float, beta: float, 
                maximizing_player: bool, use_tt: bool = True) -> Tuple[float, Optional[Tuple[int, int]]]:
     """
@@ -118,7 +168,11 @@ def alpha_beta(state: GameState, depth: int, alpha: float, beta: float,
 
     # Terminal condition or depth limit
     if depth == 0 or is_terminal(state):
-        eval_score = evaluate_state(state)
+        if depth == 0 and not is_terminal(state):
+            # Use quiescence search for better evaluation
+            eval_score = quiescence_search(state, alpha, beta, maximizing_player)
+        else:
+            eval_score = evaluate_state(state)
         if use_tt:
             transposition_table[state_hash] = (eval_score, depth)
         return eval_score, None
@@ -182,6 +236,25 @@ def get_best_move(state: GameState, depth: int = 4, use_alpha_beta: bool = True)
         Best move as (x, y) tuple
     """
     is_maximizing = not state.is_human_turn  # AI is maximizing player
+    
+    # Early termination if only one move available
+    moves = get_legal_moves(state)
+    if len(moves) == 1:
+        return moves[0]
+    
+    # Check opening book for early game positions
+    if len(state.visited) <= 2:  # Very early game
+        key = (state.human_pos, state.ai_pos, state.is_human_turn)
+        if key in OPENING_BOOK:
+            suggested_move = OPENING_BOOK[key]
+            if suggested_move in moves:
+                return suggested_move
+    
+    # Adaptive depth based on game phase
+    if len(state.treasures) <= 2:  # Endgame
+        depth = min(depth + 2, 8)
+    elif len(state.treasures) <= 4:  # Midgame
+        depth = min(depth + 1, 6)
 
     if use_alpha_beta:
         _, best_move = alpha_beta(state, depth, float('-inf'), float('inf'), is_maximizing)
@@ -190,7 +263,6 @@ def get_best_move(state: GameState, depth: int = 4, use_alpha_beta: bool = True)
 
     # Fallback to first legal move if no move found
     if best_move is None:
-        moves = get_legal_moves(state)
         if moves:
             best_move = moves[0]
 
