@@ -16,6 +16,9 @@ RED = (255, 100, 100)
 GREEN = (100, 255, 100)
 GOLD = (255, 215, 0)
 PURPLE = (200, 100, 255)
+# New colors for visited cells
+VISITED_COLOR = (150, 150, 200)  # Light blue-gray for visited cells
+VISITED_BORDER = (100, 100, 150)  # Darker border for visited cells
 
 # Game constants
 WINDOW_SIZE = 800
@@ -108,7 +111,7 @@ class PygameUI:
                 
                 # Determine cell color
                 if pos in self.state.visited:
-                    color = DARK_GRAY
+                    color = VISITED_COLOR
                 elif pos in self.legal_moves:
                     color = GREEN
                 else:
@@ -117,7 +120,9 @@ class PygameUI:
                 # Draw cell
                 pygame.draw.rect(self.screen, color, 
                                (screen_x, screen_y, CELL_SIZE, CELL_SIZE))
-                pygame.draw.rect(self.screen, BLACK, 
+                # Use different border color for visited cells
+                border_color = VISITED_BORDER if pos in self.state.visited else BLACK
+                pygame.draw.rect(self.screen, border_color, 
                                (screen_x, screen_y, CELL_SIZE, CELL_SIZE), 2)
                 
                 # Draw treasures
