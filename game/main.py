@@ -42,7 +42,10 @@ def print_game_state(state: GameState):
     """Print the current game state in a readable format."""
     print("\n" + "="*50)
     print(f"Human Score: {state.human_score} | AI Score: {state.ai_score}")
+    print(f"Score Difference: {state.ai_score - state.human_score:+d} (AI perspective)")
     print(f"Current Turn: {'Human' if state.is_human_turn else 'AI'}")
+    print(f"Treasures Remaining: {len(state.treasures)}")
+    print(f"Cells Visited: {len(state.visited)}/{state.grid_size * state.grid_size}")
     print("="*50)
 
     # Print grid
@@ -55,7 +58,7 @@ def print_game_state(state: GameState):
             elif pos == state.ai_pos:
                 row.append(" A ")
             elif pos in state.visited:
-                row.append(" X ")
+                row.append(" # ")
             elif pos in state.treasures:
                 value = state.treasures[pos]
                 if value >= 0:
@@ -66,7 +69,7 @@ def print_game_state(state: GameState):
                 row.append(" . ")
         print("|".join(row))
 
-    print("\nLegend: H=Human, A=AI, X=Visited, .=Empty, Numbers=Treasures")
+    print("\nLegend: H=Human, A=AI, #=Visited, .=Empty, Numbers=Treasures")
     print("="*50)
 
 
@@ -174,6 +177,13 @@ def play_game(grid_size: int = 4, num_treasures: int = 5, ai_depth: int = 4,
             state = play_ai_turn(state, depth=ai_depth)
 
         print_game_state(state)
+        
+        # Additional turn summary
+        if not is_terminal(state):
+            legal_moves = get_legal_moves(state)
+            print(f"Legal moves available: {len(legal_moves)}")
+            if legal_moves:
+                print(f"Next player can move to: {legal_moves}")
 
         # Safety limit
         if turn_count > 100:
